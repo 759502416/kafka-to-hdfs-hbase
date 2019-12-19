@@ -86,15 +86,16 @@ public abstract class AbstractConsumerKafka<K, V> {
     /**
      * 轮空等待的最大轮次，超过此轮次会消费完一次通道，默认3次
      */
-    public static int emptyMaxCount = 3;
+    public static int emptyMaxCount = 30;
 
     /**
-     * 每次轮空后,线程的休眠时间，默认一分钟
+     * 每次轮空后,线程的休眠时间，默认30秒
      */
-    public static Long emptySleepTime = 60000L;
+    public static Long emptySleepTime = 30000L;
 
     /**
      * 设置消费存储系统的轮空等待的最大轮次，超过此轮次会消费完一次通道
+     *
      * @param emptyMaxCount 轮空等待的最大轮次
      */
     public static void setEmptyMaxCount(int emptyMaxCount) {
@@ -103,6 +104,7 @@ public abstract class AbstractConsumerKafka<K, V> {
 
     /**
      * 设置消费存储系统的每次轮空后,线程的休眠时间
+     *
      * @param emptySleepTime 线程的休眠时间
      */
     public static void setEmptySleepTime(Long emptySleepTime) {
@@ -207,16 +209,20 @@ public abstract class AbstractConsumerKafka<K, V> {
             String key = null;
             key = ConsumerUtil.getRedisKey(this.topicName, consumerType, this.topicPatitionNo);
             Long oldOffset = getOldOffsetFromRedis(key);
-            consumer.seek(topicPartition, 0);
+            consumer.seek(topicPartition, oldOffset+1);
             ArrayBlockingQueue<V> consumerPartitionqQuene = new ArrayBlockingQueue(1000000);
 
             // 添加队列到currentMap中
             /***如果是hbase***/
             if (consumerType.equals(StoreType.HBASE.getTypeWithName())) {
-                hbaseQueneMap.put(topicPatitionNo + "", consumerPartitionqQuene);
+                synchronized (hbaseQueneMap) {
+                    hbaseQueneMap.put(topicPatitionNo + "", consumerPartitionqQuene);
+                }
                 /****如果是hdfs*****/
             } else if (consumerType.equals(StoreType.HDFS.getTypeWithName())) {
-                hdfsQueneMap.put(topicPatitionNo + "", consumerPartitionqQuene);
+                synchronized (hdfsQueneMap) {
+                    hdfsQueneMap.put(topicPatitionNo + "", consumerPartitionqQuene);
+                }
             } else {
                 logger.error("消费 队列阶段，错误的类型匹配");
                 return;
@@ -330,13 +336,20 @@ public abstract class AbstractConsumerKafka<K, V> {
                 List<V> collectAllPartitionforwardingCarriers = new ArrayList<>();
                 for (String partitionNo : hbaseQueneMap.keySet()) {
                     ArrayBlockingQueue<V> vquene = null;
-                    if (this.consumerType .equals(StoreType.HBASE.getTypeWithName())) {
-                        vquene = hbaseQueneMap.get(partitionNo);
-                    } else if (this.consumerType .equals(StoreType.HDFS.getTypeWithName())) {
-                        vquene = hdfsQueneMap.get(partitionNo);
+                    if (this.consumerType.equals(StoreType.HBASE.getTypeWithName())) {
+                        synchronized (hbaseQueneMap) {
+                            vquene = hbaseQueneMap.get(partitionNo);
+                        }
+                    } else if (this.consumerType.equals(StoreType.HDFS.getTypeWithName())) {
+                        synchronized (hdfsQueneMap) {
+                            vquene = hdfsQueneMap.get(partitionNo);
+                        }
                     } else {
                         logger.error("消费 队列阶段，错误的类型匹配");
                         return;
+                    }
+                    if (null == vquene) {
+                        continue;
                     }
                     V v = vquene.poll();
                     if (null != v) {
@@ -356,32 +369,32 @@ public abstract class AbstractConsumerKafka<K, V> {
                 }
                 // 获得载体的数据量
                 int size = forwardingCarriers.size();
-                // 如果发生过连续阻塞3次，或者 （此次可以消费到数据，并且数据量大于等于1000条）
-                if ((canConsumeData && size >= 1000) || emptyCount >= emptyMaxCount) {
+                if (canConsumeData || size >= 1000) {
                     // 并且列表中有数据要消费
-                    if (size> 0) {
-                        logger.info("本次执行写入{}开始,数据数量为:{}",this.consumerType , size);
-                            /***如果是hbase***/
-                        if (this.consumerType .equals(StoreType.HBASE.getTypeWithName())) {
+                    if (size >= 1000 || (emptyCount > 5 && size >1)) {
+                        logger.info("本次执行写入{}开始,数据数量为:{}", this.consumerType, size);
+                        /***如果是hbase***/
+                        if (this.consumerType.equals(StoreType.HBASE.getTypeWithName())) {
                             hbaseWriteMethod(forwardingCarriers);
                             /****如果是hdfs*****/
-                        } else if (this.consumerType .equals(StoreType.HDFS.getTypeWithName())) {
+                        } else if (this.consumerType.equals(StoreType.HDFS.getTypeWithName())) {
                             hdfsWriteMethod(forwardingCarriers);
                         }
                         // 写入成功
-                        for (String partitionNo : offsetMap.keySet()) {
+                        for (String partitionNo : hbaseQueneMap.keySet()) {
                             Long consumerCount = offsetMap.get(partitionNo);
-                            if (consumerCount != 0L) {
-                                String key = ConsumerUtil.getRedisKey(topicNameAndPartitionNumberCarrier.getTopicName(), this.consumerType , partitionNo);
-                                Long oldOffset = getOldOffsetFromRedis(key);
-                                logger.info("Topic:{},类型：{},redis偏移量：{},成功消费数据量:{}，分区号：{}", topicNameAndPartitionNumberCarrier.getTopicName(),
-                                        this.consumerType ,oldOffset, consumerCount, partitionNo);
-                                // 老的oldOffset+新消费的数量
-                                // TODO redis 卡
-                                jedisDao.set(key, Long.toString(oldOffset + consumerCount));
-                                //redis 增加该分区hdfs写入偏移量
-                                offsetMap.put(partitionNo, 0L);
-                            }
+                            // 有需要时则开启
+                            //if (consumerCount != 0L) {
+                            String key = ConsumerUtil.getRedisKey(topicNameAndPartitionNumberCarrier.getTopicName(), this.consumerType, partitionNo);
+                            Long oldOffset = getOldOffsetFromRedis(key);
+                            logger.info("Topic:{},类型：{},redis偏移量：{},此次成功消费数据量:{}，分区号：{}", topicNameAndPartitionNumberCarrier.getTopicName(),
+                                    this.consumerType, oldOffset, consumerCount, partitionNo);
+                            // 老的oldOffset+新消费的数量
+                            // TODO redis 卡
+                            jedisDao.set(key, Long.toString(oldOffset + consumerCount));
+                            //redis 增加该分区hdfs写入偏移量
+                            offsetMap.put(partitionNo, 0L);
+                            //}
                         }
                         forwardingCarriers.clear();
                         // 已经成功消费，故空次再次归0

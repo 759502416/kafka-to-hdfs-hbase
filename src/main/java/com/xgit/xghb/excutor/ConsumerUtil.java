@@ -19,7 +19,7 @@ public class ConsumerUtil {
     public static String getRedisKey(String topicName, String storeType, int partitionNo) {
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer.append(topicName);
-        stringBuffer.append("test01");
+        stringBuffer.append("test03");
         stringBuffer.append(storeType);
         stringBuffer.append(partitionNo);
         return stringBuffer.toString();
@@ -36,7 +36,7 @@ public class ConsumerUtil {
     public static String getRedisKey(String topicName, String storeType, String partitionNo) {
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer.append(topicName);
-        stringBuffer.append("test01");
+        stringBuffer.append("test03");
         stringBuffer.append(storeType);
         stringBuffer.append(partitionNo);
         return stringBuffer.toString();

@@ -33,7 +33,7 @@ public class TestTwo {
         EnvXinXinConsumer envExternalConsumer = new EnvXinXinConsumer(BeanFactory.getBean("testEnvExternalHbaseTableName"),BeanFactory.getBean("testEnvExternalHdfsPath"));
         TopicNameAndPartitionNumberCarrier testEnvExternal = BeanFactory.getBean("testEnvExternal");
         try {
-           envExternalConsumer.excutorConsumer(testEnvExternal);
+          // envExternalConsumer.excutorConsumer(testEnvExternal);
         } catch (Exception e) {
             e.printStackTrace();
         }
