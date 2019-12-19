@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
+    <bean id="consumerProperties" class="com.xgit.xghb.KafkaConsumerProperties">
+        <property name="bootstrapServers" value="hdp-3.hadoop:6667,hdp-4.hadoop:6667"/>
+        <property name="autoOffsetreset" value="latest"/>
+        <property name="enableAutoCommit" value="false" />
+        <!-- 上生产环境，必须要换 -->
+        <property name="groupId" value="localTest" />
+        <property name="keyDeserializer" value="com.xgit.xghb.bean.KeyDecoder" />
+        <property name="valueDeserializer" value="com.xgit.xghb.bean.ForwadingCarrierDecoder" />
+        <property name="maxPollIntervalMs" value="300000" />
+        <property name="maxPollRecords" value="5" />
+    </bean>
+
+    <bean id="topicPartitionList" class="java.util.ArrayList">
+    </bean>
+
+    <!-- 需要消费的Topic 配置 -->
+        <!-- 徐工信息 Topic -->
+    <bean id="testEnvXinXin" class="com.xgit.xghb.bean.TopicNameAndPartitionNumberCarrier">
+        <!-- 填写Topic名称 -->
+        <property name="topicName" value="testEnvXinXin" />
+        <!-- 有几个分区写几个，比如 0，1，2 分区 写3 -->
+        <property name="topicPartitionNumbers" value="5" />
+    </bean>
+        <!-- 存徐工信息数据的hdfs地址 -->
+    <bean id="testEnvXinXinHdfsPath" class="java.lang.String">
+        <constructor-arg value="/testEnv/XinXin/"></constructor-arg>
+    </bean>
+        <!-- 存徐工信息数据的hbase表名 -->
+    <bean id="testEnvXinXinHbaseTableName" class="java.lang.String">
+        <constructor-arg value="testEnvXinXinHbaseTable"></constructor-arg>
+    </bean>
+
+        <!-- 徐工集团 Topic -->
+    <bean id="testEnvGroup" class="com.xgit.xghb.bean.TopicNameAndPartitionNumberCarrier">
+        <!-- 填写Topic名称 -->
+        <property name="topicName" value="testEnvGroup" />
+        <!-- 有几个分区写几个，比如 0，1，2 分区 写3 -->
+        <property name="topicPartitionNumbers" value="5" />
+    </bean>
+        <!-- 存集团数据的hdfs地址 -->
+    <bean id="testEnvGroupHdfsPath" class="java.lang.String">
+        <constructor-arg value="/testEnv/Group/"></constructor-arg>
+    </bean>
+        <!-- 存徐工集团数据的hbase表名 -->
+    <bean id="testEnvGroupHbaseTableName" class="java.lang.String">
+        <constructor-arg value="testEnvGroupHbaseTable"></constructor-arg>
+    </bean>
+
+
+        <!-- 徐工外部平台 Topic -->
+    <bean id="testEnvExternal" class="com.xgit.xghb.bean.TopicNameAndPartitionNumberCarrier">
+        <!-- 填写Topic名称 -->
+        <property name="topicName" value="testEnvExternal" />
+        <!-- 有几个分区写几个，比如 0，1，2 分区 写3 -->
+        <property name="topicPartitionNumbers" value="5" />
+    </bean>
+        <!-- 存外部平台数据的hdfs地址 -->
+    <bean id="testEnvExternalHdfsPath" class="java.lang.String">
+        <constructor-arg value="/testEnv/External/"></constructor-arg>
+    </bean>
+        <!-- 存外部平台数据的hbase表名 -->
+    <bean id="testEnvExternalHbaseTableName" class="java.lang.String">
+        <constructor-arg value="testEnvExternalHbaseTable"></constructor-arg>
+    </bean>
+
+</beans>

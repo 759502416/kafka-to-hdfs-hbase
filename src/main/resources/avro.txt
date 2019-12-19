@@ -1,0 +1,21 @@
+{"type": "record","name": "ForwardingCarrier", "fields":
+[
+{"name":"exchangetype","type":"string"},
+{"name":"exchangecode","type":"string"},
+{"name":"requesttime","type":"string"},
+{"name":"version","type":"string"},
+{"name":"sjcjsj","type":"string"},
+{"name":"hbclId","type":"string"},
+{"name":"jxhbxh","type":"string"},
+{"name":"simid","type":"string"},
+{"name":"zdid","type":"string"},
+{"name":"dwzt","type":"string"},
+{"name":"jd","type":"string"},
+{"name":"wd","type":"string"},
+{"name":"hb","type":"string"},
+{"name":"cs","type":"string"},
+{"name":"acczt","type":"string"},
+{"name":"accljgzsc","type":"string"},
+{"name":"bjzhxx","type":"string"}
+]
+}
